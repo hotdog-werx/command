@@ -5,7 +5,10 @@ import {COLORS} from './colors'
 // :param body: The content body of the message being checked (String)
 // :param trigger: The "trigger" phrase which is searched for in the body of the message
 // :returns: true if a message activates the trigger, false otherwise
-export async function triggerCheck(body, trigger) {
+export async function triggerCheck(
+  body: string,
+  trigger: string
+): Promise<boolean> {
   // Set the output of the comment body for later use with other actions
   core.setOutput('comment_body', body)
 

@@ -1,7 +1,10 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {context} from '@actions/github'
-import {octokitRetry} from '@octokit/plugin-retry'
+// note: 'retry' is imported under the name the original code used, but the
+// plugin is never actually applied - getOctokit ignores the additionalPlugins
+// option key (upstream bug, preserved here for behavior parity)
+import {retry as octokitRetry} from '@octokit/plugin-retry'
 import {triggerCheck} from './functions/trigger-check'
 import {contextCheck} from './functions/context-check'
 import {reactEmote} from './functions/react-emote'
@@ -13,7 +16,9 @@ import {COLORS} from './functions/colors'
 import {VERSION} from './version'
 
 // :returns: 'success', 'failure', 'safe-exit' or raises an error
-export async function run() {
+export async function run(): Promise<
+  'success' | 'failure' | 'safe-exit' | undefined
+> {
   try {
     core.info(`🛸 github/command ${COLORS.info}${VERSION}${COLORS.reset}`)
     // Get the inputs for the 'command' Action
@@ -38,7 +43,7 @@ export async function run() {
     core.saveState('actionsToken', token)
 
     // get the body of the IssueOps command
-    const body = context.payload.comment.body.trim()
+    const body = context.payload.comment!.body.trim()
 
     // check the context of the event to ensure it is valid, return if it is not
     const contextCheckResults = await contextCheck(context)
@@ -47,7 +52,7 @@ export async function run() {
     }
 
     // get variables from the event context
-    const issue_number = context.payload.issue.number
+    const issue_number = context.payload.issue!.number
     core.setOutput('issue_number', issue_number)
 
     // check if the comment contains the command
@@ -64,11 +69,11 @@ export async function run() {
 
     // add the reaction to the issue_comment which triggered the Action
     const reactRes = await reactEmote(reaction, context, octokit)
-    core.setOutput('comment_id', context.payload.comment.id)
-    core.saveState('comment_id', context.payload.comment.id)
-    core.setOutput('initial_reaction_id', reactRes.data.id)
-    core.saveState('reaction_id', reactRes.data.id)
-    core.setOutput('actor', context.payload.comment.user.login)
+    core.setOutput('comment_id', context.payload.comment!.id)
+    core.saveState('comment_id', context.payload.comment!.id)
+    core.setOutput('initial_reaction_id', reactRes!.data.id)
+    core.saveState('reaction_id', reactRes!.data.id)
+    core.setOutput('actor', context.payload.comment!.user.login)
 
     // check if any parameters were used in the command
     // note: this function does have a return, but we don't care about it...
@@ -99,29 +104,25 @@ export async function run() {
       await actionStatus(
         context,
         octokit,
-        reactRes.data.id, // original reaction id
+        reactRes!.data.id, // original reaction id
         precheckResults.message // message
       )
       // set the bypass state to true so that the post run logic will not run
       core.saveState('bypass', 'true')
-      core.setFailed(precheckResults.message)
+      core.setFailed(precheckResults.message ?? '')
       return 'failure'
     }
 
     core.setOutput('continue', 'true')
     core.info(`🚀 ${COLORS.success}success!`)
     return 'success'
-  } catch (error) {
-    /* istanbul ignore next */
+  } catch (error: any) {
     core.saveState('bypass', 'true')
-    /* istanbul ignore next */
     core.error(error.stack)
-    /* istanbul ignore next */
     core.setFailed(error.message)
   }
 }
 
-/* istanbul ignore next */
 if (core.getState('isPost') === 'true') {
   post()
 } else {

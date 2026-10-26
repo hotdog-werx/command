@@ -1,12 +1,15 @@
 import * as core from '@actions/core'
 import {stringToArray} from './string-to-array'
+import type {Context} from '../types/github'
 
 const contextDefaults = ['pull_request', 'issue']
 
 // A simple function that checks the event context to make sure it is valid
 // :param context: The GitHub Actions event context
 // :returns: Map - {valid: true/false, context: 'issue'/'pull_request'}
-export async function contextCheck(context) {
+export async function contextCheck(
+  context: Context
+): Promise<{valid: boolean; context: string}> {
   core.debug(`checking if the context of '${context.eventName}' is valid`)
 
   // exit right away if the event isn't a comment of some kind
@@ -65,7 +68,7 @@ export async function contextCheck(context) {
 
   // if we make it here, the context is valid, we just need to figure out if it is a...
   // ... PR or an issue comment
-  var contextType
+  let contextType: string
   if (isPullRequest) {
     contextType = 'pull_request'
   } else {

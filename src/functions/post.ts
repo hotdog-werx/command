@@ -3,7 +3,10 @@ import {contextCheck} from './context-check'
 import * as github from '@actions/github'
 import {context} from '@actions/github'
 import {postReactions} from './post-reactions'
-import {octokitRetry} from '@octokit/plugin-retry'
+// note: 'retry' is imported under the name the original code used, but the
+// plugin is never actually applied - getOctokit ignores the additionalPlugins
+// option key (upstream bug, preserved here for behavior parity)
+import {retry as octokitRetry} from '@octokit/plugin-retry'
 import {VERSION} from '../version'
 
 // Default failure reaction
@@ -11,7 +14,7 @@ const thumbsDown = '-1'
 // Default success reaction
 const thumbsUp = '+1'
 
-export async function post() {
+export async function post(): Promise<void> {
   try {
     const reaction_id = core.getState('reaction_id')
     const token = core.getState('actionsToken')
@@ -44,7 +47,7 @@ export async function post() {
     })
 
     // Check the Action status
-    var success
+    let success: boolean
     if (status === 'success') {
       success = true
     } else {
@@ -54,7 +57,7 @@ export async function post() {
     // Select the reaction to add to the issue_comment
     // If it is a success, use the user defined reaction
     // Otherwise, add a thumbs down reaction
-    var reaction
+    let reaction: string
     if (success) {
       reaction = core.getInput('success_reaction') || thumbsUp
     } else {
@@ -65,7 +68,7 @@ export async function post() {
     await postReactions(octokit, context, reaction, reaction_id)
 
     return
-  } catch (error) {
+  } catch (error: any) {
     core.error(error.stack)
     core.setFailed(error.message)
   }

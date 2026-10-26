@@ -1,12 +1,16 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import githubUsernameRegex from 'github-username-regex-js'
+import type {Context} from '../types/github'
 
 // Helper function to check if a user exists in an org team
 // :param actor: The user to check
 // :param orgTeams: An array of org/team names
 // :returns: True if the user is in the org team, false otherwise
-async function orgTeamCheck(actor, orgTeams) {
+async function orgTeamCheck(
+  actor: string,
+  orgTeams: string[]
+): Promise<boolean> {
   // This pat needs org read permissions if you are using org/teams to define allowlist'd users
   const allowlistPat = core.getInput('allowlist_pat')
 
@@ -24,7 +28,7 @@ async function orgTeamCheck(actor, orgTeams) {
   // Loop through all org/team names
   for (const orgTeam of orgTeams) {
     // Split the org/team name into org and team
-    var [org, team] = orgTeam.split('/')
+    const [org, team] = orgTeam.split('/')
 
     try {
       // Make an API call to get the org id
@@ -53,7 +57,7 @@ async function orgTeamCheck(actor, orgTeams) {
       } else {
         core.warning(`non 204 response from org team check: ${result.status}`)
       }
-    } catch (error) {
+    } catch (error: any) {
       // If any of the API calls returns a 404, the user is not in the team
       if (error.status === 404) {
         core.debug(`${actor} is not a member of the ${orgTeam} team`)
@@ -71,7 +75,7 @@ async function orgTeamCheck(actor, orgTeams) {
 // Helper function to check if a user is allowed to run the IssueOps command
 // :param context: The GitHub Actions event context
 // :returns: true if the user is allowed, false otherwise (Boolean)
-export async function isAllowed(context) {
+export async function isAllowed(context: Context): Promise<boolean> {
   // Get the allowlist string from the action inputs
   const allowlist = core.getInput('allowlist')
 
@@ -89,8 +93,8 @@ export async function isAllowed(context) {
     .map(operator => operator.trim().toLowerCase())
 
   // loop through the allowlist
-  var handles = []
-  var orgTeams = []
+  const handles: string[] = []
+  const orgTeams: string[] = []
   allowlistSanitized.forEach(operator => {
     // If the item contains a '/', then it is a org/team
     if (operator.includes('/')) {

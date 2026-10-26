@@ -9,4 +9,9 @@ tmp*
 /.editorconfig
 
 ## repo-overrides
+node_modules/
+coverage/
+.uv-toolbox/
+.repolish/
+*.tsbuildinfo
 dprint.json

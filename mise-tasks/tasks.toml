@@ -1,6 +1,16 @@
 [setup]
 # depends = ["python:uv-sync", "workspace:pnpm-install"]
+depends = ["workspace:pnpm-install"]
 run = "echo Ready!"
 
 [format]
 depends = ["python:format", "workspace:dprint:format"]
+
+["action:typecheck"]
+description = "Typecheck src/ with tsc (native TypeScript 7)"
+run = "tsc -p tsconfig.json"
+
+["action:build"]
+description = "Bundle src/main.ts to dist/ with esbuild (replaces ncc)"
+depends = ["action:typecheck"]
+run = "node script/build.mjs"

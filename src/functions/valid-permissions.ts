@@ -1,11 +1,15 @@
 import * as core from '@actions/core'
 import {stringToArray} from './string-to-array'
+import type {Context, Octokit} from '../types/github'
 
 // Helper function to check if an actor has permissions to use this Action in a given repository
 // :param octokit: The octokit client
 // :param context: The GitHub Actions event context
 // :returns: An error string if the actor doesn't have permissions, otherwise true
-export async function validPermissions(octokit, context) {
+export async function validPermissions(
+  octokit: Octokit,
+  context: Context
+): Promise<true | string> {
   // fetch the defined permissions from the Action input
   const validPermissionsArray = await stringToArray(
     core.getInput('permissions', {required: true})

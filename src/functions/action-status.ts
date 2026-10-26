@@ -1,3 +1,5 @@
+import type {Context, Octokit} from '../types/github'
+
 // Default failure reaction
 const thumbsDown = '-1'
 // Default success reaction
@@ -15,13 +17,13 @@ const thumbsUp = '+1'
 // :param altSuccessReaction: Boolean indicating whether to use the alternate success reaction (Boolean)
 // :returns: Nothing
 export async function actionStatus(
-  context,
-  octokit,
-  reactionId,
-  message,
-  success,
-  altSuccessReaction
-) {
+  context: Context,
+  octokit: Octokit,
+  reactionId: number,
+  message?: string,
+  success?: boolean,
+  altSuccessReaction?: boolean
+): Promise<void> {
   // check if message is null or empty
   if (!message || message.length === 0) {
     const log_url = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`
@@ -36,7 +38,7 @@ export async function actionStatus(
   })
 
   // Select the reaction to add to the issue_comment
-  var reaction
+  let reaction: typeof thumbsDown | typeof rocket | typeof thumbsUp
   if (success) {
     if (altSuccessReaction) {
       reaction = thumbsUp
@@ -50,14 +52,14 @@ export async function actionStatus(
   // add a reaction to the issue_comment to indicate success or failure
   await octokit.rest.reactions.createForIssueComment({
     ...context.repo,
-    comment_id: context.payload.comment.id,
+    comment_id: context.payload.comment!.id,
     content: reaction
   })
 
   // remove the initial reaction on the IssueOp comment that triggered this action
   await octokit.rest.reactions.deleteForIssueComment({
     ...context.repo,
-    comment_id: context.payload.comment.id,
+    comment_id: context.payload.comment!.id,
     reaction_id: reactionId
   })
 }

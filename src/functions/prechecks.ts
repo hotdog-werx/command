@@ -2,31 +2,63 @@ import * as core from '@actions/core'
 import {validPermissions} from './valid-permissions'
 import {isAllowed} from './allowlist'
 import {COLORS} from './colors'
+import type {Context, Octokit} from '../types/github'
+
+// The shape of the GraphQL result used to check PR reviews and CI status
+interface PrechecksQueryResult {
+  repository: {
+    pullRequest: {
+      reviewDecision: string | null
+      commits: {
+        nodes: [
+          {
+            commit: {
+              checkSuites: {
+                totalCount: number
+              }
+              statusCheckRollup: {
+                state: string
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+
+// The result object returned by the prechecks function
+export interface PrechecksResult {
+  message: string | undefined
+  status: boolean
+  ref?: string | null
+  sha?: string | null
+}
 
 // Runs precheck logic before the IssueOps command can proceed
-// :param issue_number: The issue number of the event (String)
+// :param issue_number: The issue number of the event (Number)
 // :param allowForks: Boolean which defines whether the Action can run from forks or not
 // :param skipCi: Boolean which defines whether CI checks should be skipped or not
 // :param skipReviews: Boolean which defines whether PR reviews should be skipped or not
-// :param allowDraftPRs: Boolean which defines whether draft PRs should be allowed or not
+// :param allowDraftPRs: Boolean which defines whether draft PRs are allowed or not
 // :param contextType: The type of context (issue or pull_request)
 // :param forkReviewBypass: Boolean which defines whether the Action should bypass the lack of reviews on a fork or not (dangerous)
 // :param context: The context of the event
 // :param octokit: The octokit client
 // :returns: An object that contains the results of the prechecks, message, ref, and status
 export async function prechecks(
-  issue_number,
-  allowForks,
-  skipCi,
-  skipReviews,
-  allowDraftPRs,
-  forkReviewBypass,
-  contextType,
-  context,
-  octokit
-) {
+  issue_number: number,
+  allowForks: boolean,
+  skipCi: boolean,
+  skipReviews: boolean,
+  allowDraftPRs: boolean,
+  forkReviewBypass: boolean,
+  contextType: string,
+  context: Context,
+  octokit: Octokit
+): Promise<PrechecksResult> {
   // Setup the message variable
-  var message
+  let message: string | undefined
 
   // Check if the user has valid permissions
   const validPermissionsRes = await validPermissions(octokit, context)
@@ -59,15 +91,15 @@ export async function prechecks(
   }
 
   // save sha and ref
-  var sha = pr.data.head.sha
-  var ref = pr.data.head.ref
+  const sha = pr.data.head.sha
+  let ref: string | null = pr.data.head.ref
 
   // set an output which is the branch name this PR is targeting to merge into
   const baseRef = pr?.data?.base?.ref
   core.setOutput('base_ref', baseRef)
   core.debug(`base_ref: ${baseRef}`)
 
-  const isFork = pr?.data?.head?.repo?.fork == true
+  const isFork = pr?.data?.head?.repo?.fork === true
 
   // Determine whether to use the ref or sha depending on if the PR is from a fork or not
   // Note: We should not export fork values if the stable_branch is being used here
@@ -85,7 +117,7 @@ export async function prechecks(
     const label = pr.data.head.label
     const forkRef = pr.data.head.ref
     const forkCheckout = `${label.replace(':', '-')} ${forkRef}`
-    const forkFullName = pr.data.head.repo.full_name
+    const forkFullName = pr.data.head.repo!.full_name
     core.setOutput('fork_ref', forkRef)
     core.setOutput('fork_label', label)
     core.setOutput('fork_checkout', forkCheckout)
@@ -127,16 +159,19 @@ export async function prechecks(
   const variables = {
     owner: context.repo.owner,
     name: context.repo.repo,
-    number: parseInt(issue_number),
+    number: parseInt(String(issue_number)),
     headers: {
       Accept: 'application/vnd.github.merge-info-preview+json'
     }
   }
   // Make the GraphQL query
-  const result = await octokit.graphql(query, variables)
+  const result = (await octokit.graphql(
+    query,
+    variables
+  )) as PrechecksQueryResult
 
   // Check the reviewDecision
-  var reviewDecision
+  let reviewDecision: string | null
   if (skipReviews && isFork === false) {
     // If skipReviews is true, we bypass the results the graphql
     // This logic is not applied on forks as all PRs from forks must have the required reviews (if requested)
@@ -175,7 +210,7 @@ export async function prechecks(
   }
 
   // Grab the statusCheckRollup state from the GraphQL result
-  var commitStatus
+  let commitStatus: string | null | undefined
   try {
     // Check to see if skipCi is set
     if (skipCi) {
@@ -208,9 +243,8 @@ export async function prechecks(
     // Try to display the raw GraphQL result for debugging purposes
     try {
       core.debug('raw graphql result for debugging:')
-      core.debug(result)
+      core.debug(JSON.stringify(result, null, 2))
     } catch {
-      // istanbul ignore next
       core.debug(
         'Could not output raw graphql result for debugging - This is bad'
       )
@@ -258,7 +292,7 @@ export async function prechecks(
     core.info(message)
 
     // CI checks are passing and reviews are set to be bypassed
-  } else if (commitStatus === 'SUCCESS' && reviewDecision == 'skip_reviews') {
+  } else if (commitStatus === 'SUCCESS' && reviewDecision === 'skip_reviews') {
     message =
       '✅ CI checks are passing and reviews have been disabled for this operation'
     core.info(message)

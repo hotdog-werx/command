@@ -1,13 +1,25 @@
+import type {Context, Octokit} from '../types/github'
+
+// The reaction content types accepted by the GitHub reactions API
+type ReactionContent = NonNullable<
+  Parameters<Octokit['rest']['reactions']['createForIssueComment']>[0]
+>['content']
+
 // Helper function for adding reactions to the issue_comment on the 'post' event
 // :param octokit: An authenticated octokit client
 // :param context: The github context
 // :param reaction: The reaction to add to the issue_comment
 // :param reaction_id: The reaction_id of the initial reaction on the issue_comment
-export async function postReactions(octokit, context, reaction, reaction_id) {
+export async function postReactions(
+  octokit: Octokit,
+  context: Context,
+  reaction: string,
+  reaction_id: string
+): Promise<void> {
   // remove the initial reaction on the IssueOp comment that triggered this action
   await octokit.rest.reactions.deleteForIssueComment({
     ...context.repo,
-    comment_id: context.payload.comment.id,
+    comment_id: context.payload.comment!.id,
     reaction_id: parseInt(reaction_id)
   })
 
@@ -15,7 +27,7 @@ export async function postReactions(octokit, context, reaction, reaction_id) {
   // add a reaction to the issue_comment to indicate success or failure
   await octokit.rest.reactions.createForIssueComment({
     ...context.repo,
-    comment_id: context.payload.comment.id,
-    content: reaction
+    comment_id: context.payload.comment!.id,
+    content: reaction as ReactionContent
   })
 }

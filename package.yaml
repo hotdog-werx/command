@@ -1,0 +1,22 @@
+name: command
+version: 0.0.0
+private: true
+description: 'IssueOps commands in GitHub Actions'
+keywords:
+  - actions
+  - issueops
+  - github
+author: 'hotdog-werx'
+license: MIT
+repository:
+  type: git
+  url: 'git+https://github.com/hotdog-werx/command.git'
+type: module
+dependencies:
+  '@actions/core': '^1.11.1'
+  '@actions/github': '^6.0.1'
+  '@octokit/plugin-retry': '^6.0.1'
+  'github-username-regex-js': '^1.0.0'
+devDependencies:
+  '@types/node': 24.19.2
+  esbuild: ^0.28.2
