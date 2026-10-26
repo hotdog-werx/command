@@ -1,0 +1,6 @@
+[setup]
+# depends = ["python:uv-sync", "workspace:pnpm-install"]
+run = "echo Ready!"
+
+[format]
+depends = ["python:format", "workspace:dprint:format"]

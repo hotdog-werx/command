@@ -1,0 +1,12 @@
+[ci-checks]
+depends = [
+  "workspace:dprint:check",
+  # "python:check:ruff",
+  # "python:check:ty",
+  # "python:check:complexity",
+  # "python:check:pydoclint",
+  # "python:check:coverage",
+  "workspace:actionlint:check",
+  "workspace:repolish:check",
+]
+

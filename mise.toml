@@ -1,0 +1,47 @@
+[settings]
+experimental = true
+python.uv_venv_auto = true
+
+[plugins]
+uv-toolbox = "https://github.com/hotdog-werx/uv-toolbox"
+
+[env]
+_.uv-toolbox = { tools = true, repolish = true }
+_.file = [
+  ".repolish/*/mise-tasks/defaults.env",
+  "mise-tasks/mise.env",
+]
+
+[task_config]
+includes = [
+  ".repolish/*/mise-tasks",
+  ".repolish/*/mise-tasks/*.toml",
+  "mise-tasks",
+  "mise-tasks/*.toml",
+]
+
+[tasks]
+uvtb-install.description = "POSTINSTALL-HOOK: run uvtb install"
+uvtb-install.run = "uvtb install"
+
+repolish-link.description = "POSTINSTALL-HOOK: run repolish link"
+repolish-link.run = "uvtb exec -e repolish -- repolish link"
+
+[hooks]
+[[hooks.postinstall]]
+run = "mise run uvtb-install"
+
+[[hooks.postinstall]]
+run = "mise run repolish-link"
+
+[[hooks.postinstall]]
+run = "mise run workspace:setup-hook"
+
+[tools]
+"uv" = "0.11.14"
+"starship" = "1.25.1"
+"dprint" = "0.55.2"
+"pipx:uv-toolbox" = "0.4.1"
+"pipx:pydoclint" = "0.9.1"
+"pipx:releez" = "1.1.1"
+"github:microsoft/Typescript" = "7.0.2"

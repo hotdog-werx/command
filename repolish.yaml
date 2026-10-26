@@ -1,0 +1,11 @@
+module_links: true
+
+providers:
+  workspace:
+    module: devkit.workspace
+    context_overrides:
+      manage_workflows: false
+
+post_process:
+  - command: dprint --config {config_dir}/dprint.json fmt --no-gitignore
+    files: ['*.md']

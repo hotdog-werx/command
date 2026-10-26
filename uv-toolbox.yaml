@@ -1,0 +1,16 @@
+venv_path: .uv-toolbox
+
+environments:
+  - name: tools
+    dependencies:
+      - zensical==0.0.71
+      - releez==1.1.1
+
+  - name: repolish
+    dependencies:
+      - hotdogwerx-devkit-workspace
+    sources:
+      hotdogwerx-devkit-workspace:
+        git: https://github.com/hotdog-werx/devkit
+        branch: master
+        subdirectory: packages/devkit-workspace
