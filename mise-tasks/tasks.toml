@@ -14,3 +14,8 @@ run = "tsc -p tsconfig.json"
 description = "Bundle src/main.ts to dist/ with esbuild (replaces ncc)"
 depends = ["action:typecheck"]
 run = "node script/build.mjs"
+
+["action:test"]
+description = "Run the vitest suite with coverage and refresh the coverage badge"
+depends = ["action:typecheck"]
+run = "(pnpm exec vitest run && pnpm exec make-coverage-badge --output-path ./badges/coverage.svg) || pnpm exec make-coverage-badge --output-path ./badges/coverage.svg"

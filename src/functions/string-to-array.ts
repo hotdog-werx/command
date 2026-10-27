@@ -27,7 +27,9 @@ export async function stringToArray(string: string): Promise<string[]> {
 
     return results
   } catch (error) {
+    /* v8 ignore start */
     core.error(`failed string for debugging purposes: ${string}`)
     throw new Error(`could not convert String to Array - error: ${error}`)
+    /* v8 ignore stop */
   }
 }

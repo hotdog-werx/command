@@ -1,9 +1,14 @@
+import {test, expect, beforeEach, vi} from 'vitest'
 import {postReactions} from '../../src/functions/post-reactions'
 
-var context
-var octokit
+// hand-rolled fakes, rebuilt per test
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let context: any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let octokit: any
+
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
 
   context = {
     repo: {
@@ -20,10 +25,10 @@ beforeEach(() => {
   octokit = {
     rest: {
       reactions: {
-        createForIssueComment: jest.fn().mockReturnValueOnce({
+        createForIssueComment: vi.fn().mockReturnValueOnce({
           data: {}
         }),
-        deleteForIssueComment: jest.fn().mockReturnValueOnce({
+        deleteForIssueComment: vi.fn().mockReturnValueOnce({
           data: {}
         })
       }

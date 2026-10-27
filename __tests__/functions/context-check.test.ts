@@ -1,16 +1,30 @@
+import {test, expect, beforeEach, vi} from 'vitest'
 import {contextCheck} from '../../src/functions/context-check'
 import * as core from '@actions/core'
 
-const warningMock = jest.spyOn(core, 'warning')
-const saveStateMock = jest.spyOn(core, 'saveState')
+vi.mock('@actions/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@actions/core')>()
+  return {
+    ...actual,
+    warning: vi.fn(),
+    saveState: vi.fn(),
+    debug: vi.fn()
+  }
+})
 
-var context
+const warningMock = vi.mocked(core.warning)
+const saveStateMock = vi.mocked(core.saveState)
+
+// hand-rolled fake, rebuilt per test
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let context: any
+
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   process.env.INPUT_ALLOWED_CONTEXTS = 'pull_request,issue'
-  jest.spyOn(core, 'warning').mockImplementation(() => {})
-  jest.spyOn(core, 'saveState').mockImplementation(() => {})
-  jest.spyOn(core, 'debug').mockImplementation(() => {})
+  vi.mocked(core.warning).mockImplementation(() => {})
+  vi.mocked(core.saveState).mockImplementation(() => {})
+  vi.mocked(core.debug).mockImplementation(() => {})
 
   context = {
     eventName: 'issue_comment',
@@ -105,9 +119,9 @@ test('checks the event context and finds that it is invalid', async () => {
 
 test('checks the event context and throws an error', async () => {
   try {
-    await contextCheck('evil')
+    await contextCheck('evil' as unknown as never)
   } catch (e) {
-    expect(e.message).toBe(
+    expect((e as Error).message).toBe(
       "Could not get PR event context: TypeError: Cannot read properties of undefined (reading 'issue')"
     )
   }

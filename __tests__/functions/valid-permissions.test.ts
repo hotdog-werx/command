@@ -1,13 +1,26 @@
-import * as core from '@actions/core'
+import {test, expect, beforeEach, vi} from 'vitest'
 import {validPermissions} from '../../src/functions/valid-permissions'
+import * as core from '@actions/core'
 
-const setOutputMock = jest.spyOn(core, 'setOutput')
+vi.mock('@actions/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@actions/core')>()
+  return {
+    ...actual,
+    setOutput: vi.fn()
+  }
+})
 
-var octokit
-var context
+const setOutputMock = vi.mocked(core.setOutput)
+
+// hand-rolled fakes, rebuilt per test
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let octokit: any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let context: any
+
 beforeEach(() => {
-  jest.clearAllMocks()
-  jest.spyOn(core, 'setOutput').mockImplementation(() => {})
+  vi.clearAllMocks()
+  vi.mocked(core.setOutput).mockImplementation(() => {})
   process.env.INPUT_PERMISSIONS = 'write,admin'
 
   context = {
@@ -17,7 +30,7 @@ beforeEach(() => {
   octokit = {
     rest: {
       repos: {
-        getCollaboratorPermissionLevel: jest.fn().mockReturnValueOnce({
+        getCollaboratorPermissionLevel: vi.fn().mockReturnValueOnce({
           status: 200,
           data: {
             permission: 'write'
@@ -34,7 +47,7 @@ test('determines that a user has valid permissions to invoke the Action', async 
 })
 
 test('determines that a user has does not valid permissions to invoke the Action', async () => {
-  octokit.rest.repos.getCollaboratorPermissionLevel = jest
+  octokit.rest.repos.getCollaboratorPermissionLevel = vi
     .fn()
     .mockReturnValue({
       status: 200,
@@ -50,7 +63,7 @@ test('determines that a user has does not valid permissions to invoke the Action
 })
 
 test('fails to get actor permissions due to a bad status code', async () => {
-  octokit.rest.repos.getCollaboratorPermissionLevel = jest
+  octokit.rest.repos.getCollaboratorPermissionLevel = vi
     .fn()
     .mockReturnValue({
       status: 500

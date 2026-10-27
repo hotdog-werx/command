@@ -117,19 +117,23 @@ export async function run(): Promise<
     core.info(`🚀 ${COLORS.success}success!`)
     return 'success'
   } catch (error: any) {
+    /* v8 ignore start */
     core.saveState('bypass', 'true')
     core.error(error.stack)
     core.setFailed(error.message)
+    /* v8 ignore stop */
   }
 }
 
+/* v8 ignore start */
 if (core.getState('isPost') === 'true') {
   post()
 } else {
   if (
     process.env.CI === 'true' &&
-    process.env.COMMAND_ACTION_JEST_TEST !== 'true'
+    process.env.COMMAND_ACTION_TEST !== 'true'
   ) {
     run()
   }
 }
+/* v8 ignore stop */

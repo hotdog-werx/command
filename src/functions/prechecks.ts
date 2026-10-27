@@ -245,9 +245,11 @@ export async function prechecks(
       core.debug('raw graphql result for debugging:')
       core.debug(JSON.stringify(result, null, 2))
     } catch {
+      /* v8 ignore start */
       core.debug(
         'Could not output raw graphql result for debugging - This is bad'
       )
+      /* v8 ignore stop */
     }
   }
 

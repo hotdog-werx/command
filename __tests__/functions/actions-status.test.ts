@@ -1,9 +1,14 @@
+import {test, expect, beforeEach, vi} from 'vitest'
 import {actionStatus} from '../../src/functions/action-status'
 
-var context
-var octokit
+// hand-rolled fakes, rebuilt per test
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let context: any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let octokit: any
+
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   process.env.GITHUB_SERVER_URL = 'https://github.com'
   process.env.GITHUB_RUN_ID = '12345'
 
@@ -25,15 +30,15 @@ beforeEach(() => {
   octokit = {
     rest: {
       reactions: {
-        createForIssueComment: jest.fn().mockReturnValueOnce({
+        createForIssueComment: vi.fn().mockReturnValueOnce({
           data: {}
         }),
-        deleteForIssueComment: jest.fn().mockReturnValueOnce({
+        deleteForIssueComment: vi.fn().mockReturnValueOnce({
           data: {}
         })
       },
       issues: {
-        createComment: jest.fn().mockReturnValueOnce({
+        createComment: vi.fn().mockReturnValueOnce({
           data: {}
         })
       }

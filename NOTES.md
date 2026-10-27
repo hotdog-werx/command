@@ -27,10 +27,10 @@ in its own PR with tests.
 
 ## TODO
 
-- [ ] Testing: migrate the dormant `__tests__/` (jest) to vitest, re-add the
-      jest-era coverage pragmas as needed, and refresh `badges/coverage.svg`
-      from a coverage run. Jest deps were removed during the migration; the
-      old test files still reference removed npm tooling.
+- [x] Testing: migrated the dormant `__tests__/` (jest) to vitest 5, restored
+      the old istanbul pragmas as `v8 ignore`, and refreshed
+      `badges/coverage.svg` (2026-10-26). 96 tests green, 100% lines enforced
+      via the `action:test` mise task (typecheck → vitest → badge).
 - [ ] Devkit handoff: migrate `tsconfig.json` (and related config files)
       into devkit, bring in the other providers, and update `dprint.json`
       to include the typescript plugin.

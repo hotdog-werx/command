@@ -26041,7 +26041,7 @@ async function run() {
 if (core9.getState("isPost") === "true") {
   post();
 } else {
-  if (process.env.CI === "true" && process.env.COMMAND_ACTION_JEST_TEST !== "true") {
+  if (process.env.CI === "true" && process.env.COMMAND_ACTION_TEST !== "true") {
     run();
   }
 }

@@ -1,11 +1,20 @@
+import {test, expect, beforeEach, vi} from 'vitest'
 import {stringToArray} from '../../src/functions/string-to-array'
 import * as core from '@actions/core'
 
-const debugMock = jest.spyOn(core, 'debug')
+vi.mock('@actions/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@actions/core')>()
+  return {
+    ...actual,
+    debug: vi.fn()
+  }
+})
+
+const debugMock = vi.mocked(core.debug)
 
 beforeEach(() => {
-  jest.clearAllMocks()
-  jest.spyOn(core, 'debug').mockImplementation(() => {})
+  vi.clearAllMocks()
+  vi.mocked(core.debug).mockImplementation(() => {})
 })
 
 test('successfully converts a string to an array', async () => {

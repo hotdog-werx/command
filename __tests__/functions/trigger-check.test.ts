@@ -1,15 +1,26 @@
+import {test, expect, beforeEach, vi} from 'vitest'
 import {triggerCheck} from '../../src/functions/trigger-check'
 import {COLORS} from '../../src/functions/colors'
 import * as core from '@actions/core'
 
-const setOutputMock = jest.spyOn(core, 'setOutput')
-const debugMock = jest.spyOn(core, 'debug')
+vi.mock('@actions/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@actions/core')>()
+  return {
+    ...actual,
+    setOutput: vi.fn(),
+    saveState: vi.fn(),
+    debug: vi.fn()
+  }
+})
+
+const setOutputMock = vi.mocked(core.setOutput)
+const debugMock = vi.mocked(core.debug)
 
 beforeEach(() => {
-  jest.clearAllMocks()
-  jest.spyOn(core, 'setOutput').mockImplementation(() => {})
-  jest.spyOn(core, 'saveState').mockImplementation(() => {})
-  jest.spyOn(core, 'debug').mockImplementation(() => {})
+  vi.clearAllMocks()
+  vi.mocked(core.setOutput).mockImplementation(() => {})
+  vi.mocked(core.saveState).mockImplementation(() => {})
+  vi.mocked(core.debug).mockImplementation(() => {})
 })
 
 test('checks a message and finds a standard trigger', async () => {

@@ -1,33 +1,52 @@
+import {test, expect, beforeEach, vi} from 'vitest'
 import {prechecks} from '../../src/functions/prechecks'
 import {COLORS} from '../../src/functions/colors'
 import * as isAllowed from '../../src/functions/allowlist'
 import * as validPermissions from '../../src/functions/valid-permissions'
 import * as core from '@actions/core'
 
+vi.mock('@actions/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@actions/core')>()
+  return {
+    ...actual,
+    info: vi.fn(),
+    debug: vi.fn(),
+    warning: vi.fn(),
+    setOutput: vi.fn()
+  }
+})
+
+vi.mock('../../src/functions/allowlist', () => ({
+  isAllowed: vi.fn()
+}))
+
+vi.mock('../../src/functions/valid-permissions', () => ({
+  validPermissions: vi.fn()
+}))
+
 // Globals for testing
-const infoMock = jest.spyOn(core, 'info')
-const debugMock = jest.spyOn(core, 'debug')
-const warningMock = jest.spyOn(core, 'warning')
+const infoMock = vi.mocked(core.info)
+const debugMock = vi.mocked(core.debug)
+const warningMock = vi.mocked(core.warning)
 const defaultContextType = 'pull_request'
 
-var context
-var octokit
+// hand-rolled fakes, rebuilt per test
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let context: any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let octokit: any
 
 beforeEach(() => {
-  jest.clearAllMocks()
-  jest.spyOn(core, 'info').mockImplementation(() => {})
-  jest.spyOn(core, 'debug').mockImplementation(() => {})
-  jest.spyOn(core, 'warning').mockImplementation(() => {})
-  jest.spyOn(core, 'setOutput').mockImplementation(() => {})
+  vi.clearAllMocks()
+  vi.mocked(core.info).mockImplementation(() => {})
+  vi.mocked(core.debug).mockImplementation(() => {})
+  vi.mocked(core.warning).mockImplementation(() => {})
+  vi.mocked(core.setOutput).mockImplementation(() => {})
   process.env.INPUT_PERMISSIONS = 'admin,write'
 
-  jest.spyOn(validPermissions, 'validPermissions').mockImplementation(() => {
-    return true
-  })
+  vi.mocked(validPermissions.validPermissions).mockImplementation(async () => true)
 
-  jest.spyOn(isAllowed, 'isAllowed').mockImplementation(() => {
-    return true
-  })
+  vi.mocked(isAllowed.isAllowed).mockImplementation(async () => true)
 
   context = {
     actor: 'monalisa',
@@ -43,12 +62,12 @@ beforeEach(() => {
   octokit = {
     rest: {
       repos: {
-        getCollaboratorPermissionLevel: jest
+        getCollaboratorPermissionLevel: vi
           .fn()
           .mockReturnValue({data: {permission: 'write'}, status: 200})
       },
       pulls: {
-        get: jest.fn().mockReturnValue({
+        get: vi.fn().mockReturnValue({
           data: {
             head: {
               ref: 'test-ref',
@@ -62,7 +81,7 @@ beforeEach(() => {
         })
       }
     },
-    graphql: jest.fn().mockReturnValue({
+    graphql: vi.fn().mockReturnValue({
       repository: {
         pullRequest: {
           reviewDecision: 'APPROVED',
@@ -90,7 +109,7 @@ beforeEach(() => {
 test('runs prechecks and finds that the IssueOps command is valid', async () => {
   expect(
     await prechecks(
-      '123', // issue_number
+      123, // issue_number
       true, // allowForks
       false, // skipCi
       false, // skipReviews
@@ -111,7 +130,7 @@ test('runs prechecks and finds that the IssueOps command is valid', async () => 
 test('runs prechecks and finds that the IssueOps command is valid and exits early because the command came from an issue and not a pr', async () => {
   expect(
     await prechecks(
-      '123', // issue_number
+      123, // issue_number
       true, // allowForks
       false, // skipCi
       false, // skipReviews
@@ -130,7 +149,7 @@ test('runs prechecks and finds that the IssueOps command is valid and exits earl
 })
 
 test('runs prechecks and finds that the IssueOps command is valid without defined CI checks', async () => {
-  octokit.graphql = jest.fn().mockReturnValueOnce({
+  octokit.graphql = vi.fn().mockReturnValueOnce({
     repository: {
       pullRequest: {
         reviewDecision: 'APPROVED'
@@ -139,7 +158,7 @@ test('runs prechecks and finds that the IssueOps command is valid without define
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allowForks
       false, // skip_ci
       false, // skipReviews
@@ -167,10 +186,10 @@ test('runs prechecks and finds that the IssueOps command is valid without define
 })
 
 test('runs prechecks and fails due to a bad pull request', async () => {
-  octokit.rest.pulls.get = jest.fn().mockReturnValueOnce({status: 500})
+  octokit.rest.pulls.get = vi.fn().mockReturnValueOnce({status: 500})
   expect(
     await prechecks(
-      '123',
+      123,
       true,
       false,
       false,
@@ -187,7 +206,7 @@ test('runs prechecks and fails due to a bad pull request', async () => {
 })
 
 test('runs prechecks and finds that reviews and CI checks have not been defined', async () => {
-  octokit.graphql = jest.fn().mockReturnValueOnce({
+  octokit.graphql = vi.fn().mockReturnValueOnce({
     repository: {
       pullRequest: {
         reviewDecision: null
@@ -196,7 +215,7 @@ test('runs prechecks and finds that reviews and CI checks have not been defined'
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allowForks
       false, // skip_ci
       false, // skipReviews
@@ -229,7 +248,7 @@ test('runs prechecks and finds that reviews and CI checks have not been defined'
 })
 
 test('runs prechecks and finds CI checks pass but reviews are not defined', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: null,
@@ -252,7 +271,7 @@ test('runs prechecks and finds CI checks pass but reviews are not defined', asyn
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allowForks
       false, // skip_ci
       false, // skipReviews
@@ -274,7 +293,7 @@ test('runs prechecks and finds CI checks pass but reviews are not defined', asyn
 })
 
 test('runs prechecks and finds that the IssueOps command is valid for a branch operation and is from a forked repository', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'APPROVED',
@@ -295,7 +314,7 @@ test('runs prechecks and finds that the IssueOps command is valid for a branch o
       }
     }
   })
-  octokit.rest.pulls.get = jest.fn().mockReturnValue({
+  octokit.rest.pulls.get = vi.fn().mockReturnValue({
     data: {
       head: {
         sha: 'abcde12345',
@@ -310,7 +329,7 @@ test('runs prechecks and finds that the IssueOps command is valid for a branch o
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       false, // skip_reviews
@@ -330,7 +349,7 @@ test('runs prechecks and finds that the IssueOps command is valid for a branch o
 })
 
 test('runs prechecks and finds that the IssueOps command is not valid for a operation and is from a forked repository since forkReviewBypass is disabled by default', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'CHANGES_REQUESTED',
@@ -351,7 +370,7 @@ test('runs prechecks and finds that the IssueOps command is not valid for a oper
       }
     }
   })
-  octokit.rest.pulls.get = jest.fn().mockReturnValue({
+  octokit.rest.pulls.get = vi.fn().mockReturnValue({
     data: {
       head: {
         sha: 'abcde12345',
@@ -366,7 +385,7 @@ test('runs prechecks and finds that the IssueOps command is not valid for a oper
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       false, // skip_reviews
@@ -383,7 +402,7 @@ test('runs prechecks and finds that the IssueOps command is not valid for a oper
 })
 
 test('runs prechecks and finds that the IssueOps command is valid for a operation and is from a forked repository since forkReviewBypass enabled (dangerous)', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'REVIEW_REQUIRED',
@@ -404,7 +423,7 @@ test('runs prechecks and finds that the IssueOps command is valid for a operatio
       }
     }
   })
-  octokit.rest.pulls.get = jest.fn().mockReturnValue({
+  octokit.rest.pulls.get = vi.fn().mockReturnValue({
     data: {
       head: {
         sha: 'abcde12345',
@@ -419,7 +438,7 @@ test('runs prechecks and finds that the IssueOps command is valid for a operatio
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       true, // skip_reviews
@@ -439,7 +458,7 @@ test('runs prechecks and finds that the IssueOps command is valid for a operatio
 })
 
 test('runs prechecks and finds that the IssueOps command is on a PR from a forked repo and is not allowed', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'APPROVED',
@@ -460,7 +479,7 @@ test('runs prechecks and finds that the IssueOps command is on a PR from a forke
       }
     }
   })
-  octokit.rest.pulls.get = jest.fn().mockReturnValue({
+  octokit.rest.pulls.get = vi.fn().mockReturnValue({
     data: {
       head: {
         sha: 'abcde12345',
@@ -474,7 +493,7 @@ test('runs prechecks and finds that the IssueOps command is on a PR from a forke
   })
   expect(
     await prechecks(
-      '123',
+      123,
       false, // allow forks
       false, // skip_ci
       false, // skip_reviews
@@ -491,7 +510,7 @@ test('runs prechecks and finds that the IssueOps command is on a PR from a forke
 })
 
 test('runs prechecks and finds CI is pending and the PR has not been reviewed', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'REVIEW_REQUIRED',
@@ -515,7 +534,7 @@ test('runs prechecks and finds CI is pending and the PR has not been reviewed', 
 
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       false, // skip_reviews
@@ -533,7 +552,7 @@ test('runs prechecks and finds CI is pending and the PR has not been reviewed', 
 })
 
 test('runs prechecks and finds CI is pending and the PR has not been reviewed but skip_reviews is set', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'REVIEW_REQUIRED',
@@ -557,7 +576,7 @@ test('runs prechecks and finds CI is pending and the PR has not been reviewed bu
 
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       true, // skip_reviews
@@ -575,7 +594,7 @@ test('runs prechecks and finds CI is pending and the PR has not been reviewed bu
 })
 
 test('runs prechecks and finds CI is failing and the PR has not been reviewed but skip_reviews is set', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'REVIEW_REQUIRED',
@@ -599,7 +618,7 @@ test('runs prechecks and finds CI is failing and the PR has not been reviewed bu
 
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       true, // skip_reviews
@@ -617,7 +636,7 @@ test('runs prechecks and finds CI is failing and the PR has not been reviewed bu
 })
 
 test('runs prechecks and finds CI is pending and reviewers have not been defined', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: null,
@@ -640,7 +659,7 @@ test('runs prechecks and finds CI is pending and reviewers have not been defined
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true,
       false,
       false,
@@ -658,7 +677,7 @@ test('runs prechecks and finds CI is pending and reviewers have not been defined
 })
 
 test('runs prechecks and finds CI checked have not been defined and the PR has not been reviewed', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'REVIEW_REQUIRED'
@@ -668,7 +687,7 @@ test('runs prechecks and finds CI checked have not been defined and the PR has n
 
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       false, // skip_reviews
@@ -685,7 +704,7 @@ test('runs prechecks and finds CI checked have not been defined and the PR has n
 })
 
 test('runs prechecks and finds the PR has been approved but CI checks are pending', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'APPROVED',
@@ -708,7 +727,7 @@ test('runs prechecks and finds the PR has been approved but CI checks are pendin
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       false, // skip_reviews
@@ -726,7 +745,7 @@ test('runs prechecks and finds the PR has been approved but CI checks are pendin
 })
 
 test('runs prechecks and finds that the IssueOps command is a fork and does not require reviews so it proceeds but with a warning', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: null,
@@ -751,7 +770,7 @@ test('runs prechecks and finds that the IssueOps command is a fork and does not 
       }
     }
   })
-  octokit.rest.pulls.get = jest.fn().mockReturnValue({
+  octokit.rest.pulls.get = vi.fn().mockReturnValue({
     data: {
       head: {
         sha: 'abcde12345',
@@ -770,7 +789,7 @@ test('runs prechecks and finds that the IssueOps command is a fork and does not 
 
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       false, // skip_reviews
@@ -793,7 +812,7 @@ test('runs prechecks and finds that the IssueOps command is a fork and does not 
 })
 
 test('runs prechecks and finds CI is passing but the PR is missing an approval', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'REVIEW_REQUIRED',
@@ -816,7 +835,7 @@ test('runs prechecks and finds CI is passing but the PR is missing an approval',
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       false, // skip_reviews
@@ -834,7 +853,7 @@ test('runs prechecks and finds CI is passing but the PR is missing an approval',
 })
 
 test('runs prechecks and finds the PR is approved but CI is failing', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'APPROVED',
@@ -857,7 +876,7 @@ test('runs prechecks and finds the PR is approved but CI is failing', async () =
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true,
       false,
       false,
@@ -875,7 +894,7 @@ test('runs prechecks and finds the PR is approved but CI is failing', async () =
 })
 
 test('runs prechecks and finds the PR does not require approval but CI is failing', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: null,
@@ -898,7 +917,7 @@ test('runs prechecks and finds the PR does not require approval but CI is failin
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       false, // skip_reviews
@@ -916,7 +935,7 @@ test('runs prechecks and finds the PR does not require approval but CI is failin
 })
 
 test('runs prechecks and finds the skip_ci is set and reviews are not required', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: null,
@@ -939,7 +958,7 @@ test('runs prechecks and finds the skip_ci is set and reviews are not required',
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       true, // skip_ci
       false, // skip_reviews
@@ -959,7 +978,7 @@ test('runs prechecks and finds the skip_ci is set and reviews are not required',
 })
 
 test('runs prechecks and finds the PR is a DRAFT PR', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'APPROVED',
@@ -981,7 +1000,7 @@ test('runs prechecks and finds the PR is a DRAFT PR', async () => {
       }
     }
   })
-  octokit.rest.pulls.get = jest.fn().mockReturnValue({
+  octokit.rest.pulls.get = vi.fn().mockReturnValue({
     data: {
       head: {
         ref: 'test-ref',
@@ -997,7 +1016,7 @@ test('runs prechecks and finds the PR is a DRAFT PR', async () => {
 
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       false, // skip_reviews
@@ -1015,7 +1034,7 @@ test('runs prechecks and finds the PR is a DRAFT PR', async () => {
 })
 
 test('runs prechecks and finds the PR is a DRAFT PR and drafts are allowed', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'APPROVED',
@@ -1037,7 +1056,7 @@ test('runs prechecks and finds the PR is a DRAFT PR and drafts are allowed', asy
       }
     }
   })
-  octokit.rest.pulls.get = jest.fn().mockReturnValue({
+  octokit.rest.pulls.get = vi.fn().mockReturnValue({
     data: {
       head: {
         ref: 'test-ref',
@@ -1053,7 +1072,7 @@ test('runs prechecks and finds the PR is a DRAFT PR and drafts are allowed', asy
 
   expect(
     await prechecks(
-      '123',
+      123,
       true,
       false,
       false,
@@ -1072,11 +1091,23 @@ test('runs prechecks and finds the PR is a DRAFT PR and drafts are allowed', asy
 })
 
 test('runs prechecks and fails with a non 200 permissionRes.status', async () => {
-  jest.spyOn(validPermissions, 'validPermissions').mockImplementation(() => {
-    return 'Permission check returns non-200 status: 500'
-  })
+  vi.mocked(validPermissions.validPermissions).mockImplementation(
+    async () => 'Permission check returns non-200 status: 500'
+  )
+  // the old suite passed misaligned/missing args here, relying on the
+  // permission check short-circuiting before they are read; same exit path
   expect(
-    await prechecks('123', true, false, false, false, context, octokit)
+    await prechecks(
+      123, // issue_number
+      true, // allowForks
+      false, // skipCi
+      false, // skipReviews
+      false, // allowDraftPRs
+      false, // forkReviewBypass
+      'pull_request', // contextType
+      context, // context
+      octokit // octokit
+    )
   ).toStrictEqual({
     message: 'Permission check returns non-200 status: 500',
     status: false
@@ -1084,7 +1115,7 @@ test('runs prechecks and fails with a non 200 permissionRes.status', async () =>
 })
 
 test('runs prechecks and finds that no CI checks exist but reviews are defined', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'APPROVED',
@@ -1105,7 +1136,7 @@ test('runs prechecks and finds that no CI checks exist but reviews are defined',
   })
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       false, // skip_ci
       false, // skip_reviews
@@ -1124,7 +1155,7 @@ test('runs prechecks and finds that no CI checks exist but reviews are defined',
 })
 
 test('runs prechecks and finds that skip_ci is set and the PR has been approved', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'APPROVED',
@@ -1146,7 +1177,7 @@ test('runs prechecks and finds that skip_ci is set and the PR has been approved'
 
   expect(
     await prechecks(
-      '123',
+      123,
       true, // allow forks
       true, // skip_ci
       false, // skip_reviews
@@ -1166,13 +1197,11 @@ test('runs prechecks and finds that skip_ci is set and the PR has been approved'
 })
 
 test('runs prechecks and finds that the user is not an allowed operator', async () => {
-  jest.spyOn(isAllowed, 'isAllowed').mockImplementation(() => {
-    return false
-  })
+  vi.mocked(isAllowed.isAllowed).mockImplementation(async () => false)
 
   expect(
     await prechecks(
-      '123',
+      123,
       true,
       false, // skip_ci
       true, // skip_reviews
@@ -1189,7 +1218,7 @@ test('runs prechecks and finds that the user is not an allowed operator', async 
 
   expect(
     await prechecks(
-      '123',
+      123,
       true,
       false, // skip_ci
       true, // skip_reviews
@@ -1206,7 +1235,7 @@ test('runs prechecks and finds that the user is not an allowed operator', async 
 })
 
 test('runs prechecks and finds that skip_ci is set and no reviews are defined', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: null,
@@ -1230,7 +1259,7 @@ test('runs prechecks and finds that skip_ci is set and no reviews are defined', 
 
   expect(
     await prechecks(
-      '123',
+      123,
       true,
       true, // skip_ci
       true, // skip_reviews
@@ -1253,7 +1282,7 @@ test('runs prechecks and finds that skip_ci is set and no reviews are defined', 
 })
 
 test('runs prechecks and finds that skip_ci is set and skip_reviews is set', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'REVIEW_REQUIRED',
@@ -1277,7 +1306,7 @@ test('runs prechecks and finds that skip_ci is set and skip_reviews is set', asy
 
   expect(
     await prechecks(
-      '123',
+      123,
       true,
       true, // skip_ci
       true, // skip_reviews
@@ -1300,7 +1329,7 @@ test('runs prechecks and finds that skip_ci is set and skip_reviews is set', asy
 })
 
 test('runs prechecks and finds that skip_ci is set', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'REVIEW_REQUIRED',
@@ -1324,7 +1353,7 @@ test('runs prechecks and finds that skip_ci is set', async () => {
 
   expect(
     await prechecks(
-      '123',
+      123,
       true,
       true, // skip_ci
       false, // skip_reviews
@@ -1341,7 +1370,7 @@ test('runs prechecks and finds that skip_ci is set', async () => {
 })
 
 test('runs prechecks and finds that CI is pending and reviewers have not been defined', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: null,
@@ -1365,7 +1394,7 @@ test('runs prechecks and finds that CI is pending and reviewers have not been de
 
   expect(
     await prechecks(
-      '123',
+      123,
       true,
       false, // skip_ci
       false, // skip_reviews
@@ -1382,7 +1411,7 @@ test('runs prechecks and finds that CI is pending and reviewers have not been de
 })
 
 test('runs prechecks and finds that the PR is NOT reviewed and CI checks have been disabled', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'REVIEW_REQUIRED',
@@ -1406,7 +1435,7 @@ test('runs prechecks and finds that the PR is NOT reviewed and CI checks have be
 
   expect(
     await prechecks(
-      '123',
+      123,
       true,
       true, // skip_ci
       true, // skip_reviews
@@ -1425,7 +1454,7 @@ test('runs prechecks and finds that the PR is NOT reviewed and CI checks have be
 })
 
 test('runs prechecks and finds the PR is approved and ci is passing', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'APPROVED',
@@ -1449,7 +1478,7 @@ test('runs prechecks and finds the PR is approved and ci is passing', async () =
 
   expect(
     await prechecks(
-      '123', // issue_number
+      123, // issue_number
       true, // allowForks
       false, // skipCi
       false, // skipReviews
@@ -1468,7 +1497,7 @@ test('runs prechecks and finds the PR is approved and ci is passing', async () =
 })
 
 test('runs prechecks and finds the PR is approved and ci is passing', async () => {
-  octokit.graphql = jest.fn().mockReturnValue({
+  octokit.graphql = vi.fn().mockReturnValue({
     repository: {
       pullRequest: {
         reviewDecision: 'REVIEW_REQUIRED',
@@ -1492,7 +1521,7 @@ test('runs prechecks and finds the PR is approved and ci is passing', async () =
 
   expect(
     await prechecks(
-      '123', // issue_number
+      123, // issue_number
       true, // allowForks
       false, // skipCi
       true, // skipReviews
