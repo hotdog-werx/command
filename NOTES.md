@@ -40,5 +40,11 @@ in its own PR with tests.
       freshness).
 - [ ] Docs: README and CONTRIBUTING still describe the old npm/nodenv
       workflow — rewrite for mise/pnpm/TypeScript.
-- [ ] Dependabot: the npm ecosystem config points at the deleted
-      `package.json` — retarget/verify against `pnpm-lock.yaml`.
+- [x] Dependabot: alerts-only mode (2026-10-26) — deleted
+      `.github/dependabot.yml` entirely: the npm version-updater requires
+      `package.json` (it cannot read our `package.yaml` manifest), and
+      update PRs weren't wanted. Security alerts are unaffected — they
+      come from the dependency graph, which parses `pnpm-lock.yaml`
+      (single-doc v9 format) directly. NOTE: the graph and Dependabot
+      alerts are off by default on forks and must be enabled once in repo
+      settings (Settings → Code security).
