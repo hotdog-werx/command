@@ -4,7 +4,8 @@ depends = ["workspace:pnpm-install"]
 run = "echo Ready!"
 
 [format]
-depends = ["python:format", "workspace:dprint:format"]
+# depends = ["python:format", "workspace:dprint:format"]
+depends = ["workspace:dprint:format"]
 
 ["action:typecheck"]
 description = "Typecheck src/ with tsc (native TypeScript 7)"
@@ -19,3 +20,14 @@ run = "node script/build.mjs"
 description = "Run the vitest suite with coverage and refresh the coverage badge"
 depends = ["action:typecheck"]
 run = "(pnpm exec vitest run && pnpm exec make-coverage-badge --output-path ./badges/coverage.svg) || pnpm exec make-coverage-badge --output-path ./badges/coverage.svg"
+
+["action:dist-check"]
+description = "Rebuild dist/ and fail if it differs from the committed bundle"
+depends = ["action:build"]
+run = """
+if [ -n "$(git diff --ignore-space-at-eol -- dist/)" ]; then
+  echo "Detected uncommitted changes in dist/ after rebuild:"
+  git diff -- dist/
+  exit 1
+fi
+"""

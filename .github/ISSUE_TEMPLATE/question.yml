@@ -1,6 +1,6 @@
 name: Question
 description: Open an issue to ask a question or start a discussion
-labels: ["question"]
+labels: ['question']
 body:
   - type: markdown
     attributes:

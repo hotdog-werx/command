@@ -1,0 +1,60 @@
+name: ci-checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  # json-yaml-validate comments on the PR when validation fails
+  pull-requests: write
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v5
+
+      - name: actions-config-validation
+        uses: GrantBirki/json-yaml-validate@9bbaa8474e3af4e91f25eda8ac194fdc30564d96 # v4.0.0
+        with:
+          comment: 'true'
+          yaml_schema: '__tests__/schemas/action.schema.yml'
+          exclude_file: '.github/config/exclude.txt'
+
+      - name: mise
+        uses: jdx/mise-action@v3
+
+      - name: dependencies
+        run: mise run setup
+
+      - name: action-typecheck
+        run: mise run action:typecheck
+
+      - name: action-test
+        run: mise run action:test
+
+      - name: action-dist-check
+        id: dist-check
+        run: mise run action:dist-check
+
+      - name: dist artifact
+        if: ${{ failure() && steps.dist-check.conclusion == 'failure' }}
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: dist
+          path: dist/
+
+      - name: workspace-dprint-check
+        run: mise run workspace:dprint:check
+
+      - name: workspace-actionlint-check
+        run: mise run workspace:actionlint:check
+
+      - name: workspace-repolish-check
+        run: mise run workspace:repolish:check
+
+      - name: workspace-uv-toolbox-lock-check
+        run: mise run workspace:uv-toolbox-lock:check

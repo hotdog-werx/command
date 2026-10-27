@@ -1,2 +1,3 @@
 # gitignore style exclude file for the GrantBirki/json-yaml-validate Action
 .github/
+pnpm-lock.yaml

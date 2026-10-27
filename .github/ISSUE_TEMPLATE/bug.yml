@@ -1,12 +1,12 @@
 name: Bug Report
 description: File a bug/issue report
-labels: ["bug"]
+labels: ['bug']
 body:
   - type: markdown
     attributes:
       value: |
         # Bug Report 🐛
-        
+
         Thanks for taking the time to fill out this bug report!
 
         Please answer each question below to your best ability. It is okay to leave questions blank if you have to!

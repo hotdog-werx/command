@@ -1,6 +1,9 @@
 [ci-checks]
 depends = [
+  "action:typecheck",
   "workspace:dprint:check",
+  "action:test",
+  "action:dist-check",
   # "python:check:ruff",
   # "python:check:ty",
   # "python:check:complexity",
@@ -8,5 +11,5 @@ depends = [
   # "python:check:coverage",
   "workspace:actionlint:check",
   "workspace:repolish:check",
+  "workspace:uv-toolbox-lock:check",
 ]
-
